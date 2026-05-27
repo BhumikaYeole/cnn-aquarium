@@ -1,0 +1,452 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  #app { display: flex; flex-direction: column; align-items: center; padding: 1rem; gap: 1rem; min-height: 100vh; background: #0a0e1a; }
+  h1 { color: #a8d8ea; font-size: 1.4rem; font-weight: 400; letter-spacing: 0.1em; text-align: center; font-style: italic; }
+  #aquarium-wrap { position: relative; width: 100%; max-width: 680px; height: 320px; border-radius: 12px; overflow: hidden; border: 2px solid #1e4d6b; box-shadow: 0 0 40px rgba(0,120,200,0.3), inset 0 0 60px rgba(0,40,80,0.5); }
+  #aquarium { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+  .glass-shine { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 40%, rgba(255,255,255,0.02) 100%); pointer-events: none; border-radius: 10px; }
+  .water-top { position: absolute; top: 0; left: 0; width: 100%; height: 8px; background: rgba(100,200,255,0.15); animation: waterTop 3s ease-in-out infinite; }
+  @keyframes waterTop { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
+  .draw-area { width: 100%; max-width: 680px; background: #0d1b2a; border-radius: 12px; border: 1.5px solid #1e4d6b; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .draw-header { color: #7ec8e3; font-size: 0.85rem; letter-spacing: 0.08em; text-align: center; font-style: italic; }
+  .canvas-row { display: flex; gap: 0.75rem; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  #fish-canvas { border-radius: 8px; border: 1px solid #1e4d6b; cursor: crosshair; background: #111d2b; touch-action: none; }
+  .tools { display: flex; flex-direction: column; gap: 0.5rem; }
+  .tool-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .color-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
+  .color-btn.active { border-color: #fff; transform: scale(1.2); }
+  .size-btn { width: 28px; height: 28px; border-radius: 6px; background: #1a2d40; border: 1px solid #2a4d6b; cursor: pointer; color: #7ec8e3; font-size: 11px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+  .size-btn.active, .size-btn:hover { background: #1e4d6b; }
+  .btn-row { display: flex; gap: 0.5rem; justify-content: center; }
+  .btn { padding: 0.5rem 1.2rem; border-radius: 8px; border: none; cursor: pointer; font-size: 0.85rem; font-family: Georgia, serif; transition: all 0.2s; letter-spacing: 0.05em; }
+  .btn-add { background: #1e7f9e; color: #d0f0ff; border: 1px solid #3abcde; }
+  .btn-add:hover { background: #28a0c4; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(40,160,196,0.4); }
+  .btn-clear { background: #1a2d40; color: #7ec8e3; border: 1px solid #2a4d6b; }
+  .btn-clear:hover { background: #1e3d55; }
+  .count-badge { position: absolute; top: 8px; right: 12px; background: rgba(10,20,40,0.7); color: #7ec8e3; font-size: 11px; padding: 3px 8px; border-radius: 10px; border: 1px solid #1e4d6b; font-family: Georgia, serif; font-style: italic; }
+  .message-box { min-height: 28px; display: flex; align-items: center; justify-content: center; background: rgba(30,79,110,0.5); border-radius: 8px; border: 1px solid #2a4d6b; color: #ff9f43; font-size: 0.8rem; padding: 0.5rem; text-align: center; font-style: italic; animation: fadeIn 0.3s ease-in; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+<div id="app">
+  <h1>~ The Living Aquarium ~</h1>
+  <div id="aquarium-wrap">
+    <canvas id="aquarium"></canvas>
+    <div class="glass-shine"></div>
+    <div class="water-top"></div>
+    <div id="count-badge" class="count-badge">0 fish</div>
+  </div>
+  <div class="draw-area">
+    <div class="draw-header">✦ Draw your fish below, then release it into the tank ✦</div>
+    <div style="color:#4a7f9e;font-size:15px;letter-spacing:0.05em;margin-bottom:0.25rem;"> Draw the fish with its face pointing right --> </div>
+    <div class="canvas-row">
+      <canvas id="fish-canvas" width="220" height="160"></canvas>
+      <div class="tools">
+        <div style="color:#4a7f9e;font-size:11px;letter-spacing:0.05em;">COLOR</div>
+        <div class="tool-row" id="colors"></div>
+        <div style="color:#4a7f9e;font-size:11px;letter-spacing:0.05em;margin-top:4px;">TOOL</div>
+        <div class="tool-row">
+          <button class="size-btn active" id="pen-btn" onclick="setTool('pen')">✏</button>
+          <button class="size-btn" id="erase-btn" onclick="setTool('erase')">⌫</button>
+        </div>
+      </div>
+    </div>
+    <div id="message-box" class="message-box" style="display:none;"></div>
+    <div class="btn-row">
+      <button class="btn btn-clear" onclick="clearCanvas()">Clear</button>
+      <button class="btn btn-add" onclick="addFish()">Add Fish to Aquarium →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#ff6b6b','#ff9f43','#ffd93d','#6bcb77','#4ecdc4','#45b7d1','#9b59b6','#e91e8c','#ffffff','#f4a261','#2ec4b6','#ff6392'];
+let drawColor = COLORS[5];
+let drawSize = 15;
+let tool = 'pen';
+let drawing = false;
+let lastX=0,lastY=0;
+
+const fishCanvas = document.getElementById('fish-canvas');
+const fctx = fishCanvas.getContext('2d');
+fctx.fillStyle = '#111d2b';
+fctx.fillRect(0,0,fishCanvas.width,fishCanvas.height);
+
+const colorContainer = document.getElementById('colors');
+COLORS.forEach((c) => {
+  const b = document.createElement('div');
+  b.className = 'color-btn' + (c === drawColor ? ' active' : '');
+  b.style.background = c;
+  b.onclick = () => {
+    drawColor = c;
+    document.querySelectorAll('.color-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    setTool('pen');
+  };
+  colorContainer.appendChild(b);
+});
+
+
+
+function setTool(t) {
+  tool = t;
+  document.getElementById('pen-btn').classList.toggle('active', t==='pen');
+  document.getElementById('erase-btn').classList.toggle('active', t==='erase');
+}
+
+function getPos(e, canvas) {
+  const r = canvas.getBoundingClientRect();
+  const pt = e.touches ? e.touches[0] : e;
+  return [(pt.clientX - r.left) * (canvas.width/r.width), (pt.clientY - r.top) * (canvas.height/r.height)];
+}
+
+fishCanvas.addEventListener('mousedown', e => { drawing=true; [lastX,lastY]=getPos(e,fishCanvas); });
+fishCanvas.addEventListener('mousemove', e => { if(!drawing) return; drawStroke(e); });
+fishCanvas.addEventListener('mouseup', ()=>drawing=false);
+fishCanvas.addEventListener('mouseleave', ()=>drawing=false);
+fishCanvas.addEventListener('touchstart', e => { e.preventDefault(); drawing=true; [lastX,lastY]=getPos(e,fishCanvas); },{passive:false});
+fishCanvas.addEventListener('touchmove', e => { e.preventDefault(); if(!drawing) return; drawStroke(e); },{passive:false});
+fishCanvas.addEventListener('touchend', ()=>drawing=false);
+
+function drawStroke(e) {
+  const [x,y] = getPos(e, fishCanvas);
+  fctx.beginPath();
+  fctx.moveTo(lastX,lastY);
+  fctx.lineTo(x,y);
+  fctx.strokeStyle = tool==='erase' ? '#111d2b' : drawColor;
+  fctx.lineWidth = tool==='erase' ? drawSize*3 : drawSize;
+  fctx.lineCap = 'round';
+  fctx.lineJoin = 'round';
+  fctx.stroke();
+  [lastX,lastY] = [x,y];
+}
+
+function clearCanvas() {
+  fctx.fillStyle = '#111d2b';
+  fctx.fillRect(0,0,fishCanvas.width,fishCanvas.height);
+}
+
+// Extract fish drawing with transparent background using chroma-key on the canvas bg color
+function extractFishTexture() {
+  const src = fishCanvas;
+  const offscreen = document.createElement('canvas');
+  offscreen.width = src.width;
+  offscreen.height = src.height;
+  const octx = offscreen.getContext('2d');
+  octx.drawImage(src, 0, 0);
+
+  const imageData = octx.getImageData(0, 0, offscreen.width, offscreen.height);
+  const data = imageData.data;
+
+  // Background color is #111d2b → r=17, g=29, b=43
+  const bgR=17, bgG=29, bgB=43;
+  const threshold = 30;
+
+  for(let i=0; i<data.length; i+=4) {
+    const r=data[i], g=data[i+1], b=data[i+2];
+    const dist = Math.sqrt((r-bgR)**2+(g-bgG)**2+(b-bgB)**2);
+    if(dist < threshold) {
+      data[i+3] = 0; // make transparent
+    }
+  }
+  octx.putImageData(imageData, 0, 0);
+  return offscreen;
+}
+
+// === AQUARIUM ===
+const aqCanvas = document.getElementById('aquarium');
+const aq = aqCanvas.getContext('2d');
+const wrap = document.getElementById('aquarium-wrap');
+
+function resizeAquarium() {
+  aqCanvas.width = wrap.offsetWidth;
+  aqCanvas.height = wrap.offsetHeight;
+}
+resizeAquarium();
+window.addEventListener('resize', resizeAquarium);
+
+async function classifyFish(texture) {
+
+    const blob = await new Promise(resolve =>
+        texture.toBlob(resolve, "image/png")
+    );
+
+    const formData = new FormData();
+    formData.append("image", blob, "fish.png");
+
+    const response = await fetch(
+        "http://127.0.0.1:5000/predict",
+        {
+            method: "POST",
+            body: formData
+        }
+    );
+
+    return await response.json();
+}
+const fishes = [];
+let frameCount = 0;
+
+function showMessage(text) {
+  const msgBox = document.getElementById('message-box');
+  msgBox.textContent = text;
+  msgBox.style.display = 'flex';
+  setTimeout(() => {
+    msgBox.style.display = 'none';
+  }, 4000);
+}
+
+async function addFish() {
+  const texture = extractFishTexture();
+
+  const result = await classifyFish(texture);
+  console.log(result)
+
+  if(result.result === "Not Fish") {
+    showMessage("Hmm, that doesn't look like a fish! Try drawing a clearer fish shape.");
+    return;
+  }
+
+  const W = aqCanvas.width, H = aqCanvas.height;
+  const dir = Math.random() > 0.5 ? 1 : -1;
+  fishes.push({
+    texture,
+    dir,
+    visualDir: dir,        // the rendered flip direction (smoothly transitions)
+    flipProgress: 0,       // 0 = facing dir, 1 = facing -dir (mid-flip)
+    flipping: false,
+    flipTimer: 200 + Math.floor(Math.random()*400), // frames until next direction change
+    x: dir===1 ? -80 : W+80,
+    y: 60 + Math.random()*(H-160),
+    speed: 0.6 + Math.random()*0.8,
+    scale: 0.4 + Math.random()*0.35,
+    wobble: Math.random()*Math.PI*2,
+    wobbleSpeed: 0.02 + Math.random()*0.02,
+  });
+  document.getElementById('count-badge').textContent = fishes.length + ' fish';
+  clearCanvas();
+}
+
+const corals = [];
+function initCorals() {
+  const W = aqCanvas.width, H = aqCanvas.height;
+  const types = ['fan','branch','tube','anemone'];
+  for(let i=0;i<12;i++) {
+    corals.push({
+      x: 20+(i/12)*(W-40)+(Math.random()-0.5)*30,
+      y: H-10,
+      type: types[i%types.length],
+      height: 40+Math.random()*60,
+      color: ['#ff6b9d','#ff9f43','#9b59b6','#e74c3c','#f39c12','#1abc9c'][i%6],
+      phase: Math.random()*Math.PI*2,
+      speed: 0.015+Math.random()*0.01,
+      width: 8+Math.random()*10
+    });
+  }
+}
+initCorals();
+
+const bubbles = [];
+for(let i=0;i<20;i++) {
+  bubbles.push({ x:Math.random()*680, y:300+Math.random()*20, r:1+Math.random()*3, speed:0.3+Math.random()*0.6, phase:Math.random()*Math.PI*2 });
+}
+
+const caustics = [];
+for(let i=0;i<8;i++) {
+  caustics.push({ x:Math.random()*680, y:20+Math.random()*80, r:30+Math.random()*60, phase:Math.random()*Math.PI*2, speed:0.005+Math.random()*0.005 });
+}
+
+function drawCoral(c, t) {
+  const sway = Math.sin(c.phase + t*c.speed)*5;
+  aq.save();
+  aq.translate(c.x, c.y);
+  if(c.type==='fan') {
+    for(let i=0;i<7;i++) {
+      const a = -Math.PI/2+(i-3)*0.18+sway*0.04;
+      const len = c.height*(1-Math.abs(i-3)*0.06);
+      aq.beginPath(); aq.moveTo(0,0);
+      aq.bezierCurveTo(Math.cos(a-0.2)*len*0.5+sway*0.3, Math.sin(a-0.2)*len*0.5, Math.cos(a+0.2)*len*0.8+sway*0.5, Math.sin(a+0.2)*len*0.8, Math.cos(a)*len+sway, Math.sin(a)*len);
+      aq.strokeStyle=c.color+'cc'; aq.lineWidth=1.5; aq.stroke();
+    }
+    aq.beginPath();
+    for(let i=0;i<5;i++) {
+      const y=-c.height*(0.3+i*0.15), spread=c.width*(0.5+i*0.1);
+      aq.moveTo(-spread+sway*0.1*i,y); aq.lineTo(spread+sway*0.1*i,y);
+    }
+    aq.strokeStyle=c.color+'55'; aq.lineWidth=0.8; aq.stroke();
+  } else if(c.type==='branch') {
+    function branch(x,y,angle,len,depth) {
+      if(depth<0||len<4) return;
+      const sw=sway*0.08*depth;
+      const ex=x+Math.cos(angle+sw)*len, ey=y+Math.sin(angle)*len;
+      aq.beginPath(); aq.moveTo(x,y); aq.lineTo(ex,ey);
+      aq.strokeStyle=c.color+(depth===2?'ff':'bb'); aq.lineWidth=depth*1.2; aq.stroke();
+      branch(ex,ey,angle-0.4,len*0.65,depth-1);
+      branch(ex,ey,angle+0.4,len*0.65,depth-1);
+      if(depth===1){ aq.beginPath(); aq.arc(ex,ey,2.5,0,Math.PI*2); aq.fillStyle=c.color; aq.fill(); }
+    }
+    branch(0,0,-Math.PI/2,c.height*0.5,3);
+  } else if(c.type==='tube') {
+    for(let i=0;i<3;i++) {
+      const ox=(i-1)*12, h=c.height*(0.7+i*0.15);
+      aq.beginPath(); aq.moveTo(ox,0); aq.lineTo(ox+sway*0.4,-h);
+      aq.strokeStyle=c.color+'aa'; aq.lineWidth=6; aq.lineCap='round'; aq.stroke();
+      aq.beginPath(); aq.ellipse(ox+sway*0.4,-h,5,3,0,0,Math.PI*2);
+      aq.fillStyle=c.color; aq.fill();
+    }
+  } else {
+    for(let i=0;i<6;i++) {
+      const a=(i/6)*Math.PI*2, len=c.height*0.5+Math.sin(c.phase+t*c.speed+i)*5, sw=sway*0.5;
+      aq.beginPath(); aq.moveTo(0,0);
+      aq.quadraticCurveTo(Math.cos(a)*len*0.5+sw, Math.sin(a)*len*0.5, Math.cos(a)*len+sw, Math.sin(a)*len);
+      aq.strokeStyle=c.color+'cc'; aq.lineWidth=3; aq.lineCap='round'; aq.stroke();
+      aq.beginPath(); aq.arc(Math.cos(a)*len+sw, Math.sin(a)*len,4,0,Math.PI*2);
+      aq.fillStyle=c.color+'88'; aq.fill();
+    }
+    aq.beginPath(); aq.arc(0,0,6,0,Math.PI*2); aq.fillStyle=c.color; aq.fill();
+  }
+  aq.restore();
+}
+
+function drawBackground(W,H,t) {
+  const bg = aq.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#061525'); bg.addColorStop(0.5,'#0a2540'); bg.addColorStop(1,'#051020');
+  aq.fillStyle=bg; aq.fillRect(0,0,W,H);
+
+  aq.save(); aq.globalAlpha=0.04;
+  caustics.forEach(c => {
+    c.phase+=c.speed;
+    const pulse=0.7+0.3*Math.sin(c.phase);
+    const rg=aq.createRadialGradient(c.x+Math.sin(c.phase)*20,c.y,0,c.x,c.y,c.r*pulse);
+    rg.addColorStop(0,'#88ddff'); rg.addColorStop(1,'transparent');
+    aq.fillStyle=rg; aq.beginPath();
+    aq.ellipse(c.x+Math.sin(c.phase)*20,c.y,c.r*pulse*1.5,c.r*pulse*0.4,0,0,Math.PI*2); aq.fill();
+  });
+  aq.restore();
+
+  aq.save(); aq.globalAlpha=0.03;
+  for(let i=0;i<5;i++) {
+    const rx=80+i*130+Math.sin(t*0.003+i)*20;
+    aq.beginPath(); aq.moveTo(rx-20,0); aq.lineTo(rx+20,0); aq.lineTo(rx+60,H); aq.lineTo(rx-60,H);
+    aq.fillStyle='#aaddff'; aq.fill();
+  }
+  aq.restore();
+
+  const sand=aq.createLinearGradient(0,H-30,0,H);
+  sand.addColorStop(0,'#1a3020'); sand.addColorStop(0.4,'#2a4530'); sand.addColorStop(1,'#1a2818');
+  aq.fillStyle=sand; aq.beginPath(); aq.moveTo(0,H);
+  for(let x=0;x<=W;x+=20) aq.lineTo(x, H-25+Math.sin(x*0.05+1)*4+Math.sin(x*0.03)*3);
+  aq.lineTo(W,H); aq.closePath(); aq.fill();
+
+  aq.save(); aq.globalAlpha=0.4;
+  for(let i=0;i<40;i++) {
+    const gx=(i*67+13)%W, gy=H-5-(i*31+7)%20;
+    aq.beginPath(); aq.arc(gx,gy,1+(i%3),0,Math.PI*2);
+    aq.fillStyle=['#3a5a38','#4a6a44','#2a4028'][i%3]; aq.fill();
+  }
+  aq.restore();
+
+  [[60,H-20,25,18],[W-80,H-22,30,20],[W/2,H-18,20,15]].forEach(([rx,ry,rw,rh])=>{
+    aq.beginPath(); aq.ellipse(rx,ry,rw,rh,0,0,Math.PI*2);
+    const rg2=aq.createRadialGradient(rx-5,ry-5,2,rx,ry,rw);
+    rg2.addColorStop(0,'#3a4a38'); rg2.addColorStop(1,'#1a2818');
+    aq.fillStyle=rg2; aq.fill();
+  });
+}
+
+function drawBubbles(t) {
+  bubbles.forEach(b => {
+    b.y-=b.speed; b.x+=Math.sin(b.phase+t*0.04)*0.4;
+    if(b.y<-10){ b.y=aqCanvas.height+5; b.x=Math.random()*aqCanvas.width; }
+    aq.beginPath(); aq.arc(b.x,b.y,b.r,0,Math.PI*2);
+    aq.strokeStyle='rgba(150,220,255,0.4)'; aq.lineWidth=0.7; aq.stroke();
+    aq.beginPath(); aq.arc(b.x-b.r*0.3,b.y-b.r*0.3,b.r*0.3,0,Math.PI*2);
+    aq.fillStyle='rgba(200,240,255,0.5)'; aq.fill();
+  });
+}
+
+function drawWaterSurface(W,t) {
+  aq.save(); aq.globalAlpha=0.12; aq.beginPath(); aq.moveTo(0,0);
+  for(let x=0;x<=W;x+=4) aq.lineTo(x, 6+Math.sin(x*0.04+t*0.05)*3+Math.sin(x*0.02+t*0.03)*2);
+  aq.lineTo(W,0); aq.closePath();
+  const wg=aq.createLinearGradient(0,0,0,12);
+  wg.addColorStop(0,'#88ddff'); wg.addColorStop(1,'transparent');
+  aq.fillStyle=wg; aq.fill(); aq.restore();
+}
+
+const FLIP_DURATION = 40; // frames for a full turn
+
+function loop() {
+  requestAnimationFrame(loop);
+  const W=aqCanvas.width, H=aqCanvas.height;
+  if(W===0) return;
+  frameCount++;
+
+  aq.clearRect(0,0,W,H);
+  drawBackground(W,H,frameCount);
+  corals.forEach(c=>drawCoral(c,frameCount));
+  drawBubbles(frameCount);
+
+  fishes.forEach(f => {
+    f.wobble += f.wobbleSpeed;
+    // Count down to next turn
+    f.flipTimer--;
+    if(f.flipTimer <= 0 && !f.flipping) {
+      f.flipping = true;
+      f.flipProgress = 0;
+      // Schedule next turn after this one completes
+      f.flipTimer = 250 + Math.floor(Math.random()*350);
+    }
+
+    if(f.flipping) {
+      f.flipProgress += 1/FLIP_DURATION;
+      if(f.flipProgress >= 1) {
+        f.flipProgress = 1;
+        f.flipping = false;
+        f.dir *= -1; // commit direction change
+      }
+    }
+
+    // Move with current direction; during flip, slow down a bit
+    const moveMult = f.flipping ? (1 - 0.5 * Math.sin(f.flipProgress * Math.PI)) : 1;
+    f.x += f.dir * f.speed * moveMult;
+
+    // Wrap around edges
+    if(f.dir===1 && f.x > W+100) f.x=-100;
+    if(f.dir===-1 && f.x < -100) f.x=W+100;
+
+    const sw = f.scale * fishCanvas.width;
+    const sh = f.scale * fishCanvas.height;
+    const wobbleY = Math.sin(f.wobble)*3;
+
+    aq.save();
+    aq.translate(f.x, f.y + wobbleY);
+
+    // Smooth horizontal scale flip: goes from 1 → 0 → -1 using cosine
+    // When not flipping: scaleX = f.dir
+    // During flip: interpolate scaleX from f.dir to -f.dir via cos curve
+    let scaleX;
+    if(f.flipping) {
+      // flipProgress 0→1: scaleX goes from f.dir → -f.dir through zero (using cos)
+      scaleX = f.dir * Math.cos(f.flipProgress * Math.PI);
+    } else {
+      scaleX = f.dir;
+    }
+
+    // Slight vertical tilt during turn
+    const tiltY = f.flipping ? Math.sin(f.flipProgress * Math.PI) * 0.15 : 0;
+
+    aq.transform(scaleX, tiltY, 0, 1, 0, 0);
+    aq.drawImage(f.texture, -sw/2, -sh/2, sw, sh);
+    aq.restore();
+  });
+
+  drawWaterSurface(W,frameCount);
+
+  const vig=aq.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,H*0.9);
+  vig.addColorStop(0,'transparent'); vig.addColorStop(1,'rgba(0,5,15,0.5)');
+  aq.fillStyle=vig; aq.fillRect(0,0,W,H);
+}
+loop();
+</script>
