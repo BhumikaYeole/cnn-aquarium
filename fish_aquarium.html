@@ -63,7 +63,7 @@
 <script>
 const COLORS = ['#ff6b6b','#ff9f43','#ffd93d','#6bcb77','#4ecdc4','#45b7d1','#9b59b6','#e91e8c','#ffffff','#f4a261','#2ec4b6','#ff6392'];
 let drawColor = COLORS[5];
-let drawSize = 15;
+let drawSize = 12;
 let tool = 'pen';
 let drawing = false;
 let lastX=0,lastY=0;
@@ -147,10 +147,8 @@ function extractFishTexture() {
     const r=data[i], g=data[i+1], b=data[i+2];
     const dist = Math.sqrt((r-bgR)**2+(g-bgG)**2+(b-bgB)**2);
     if(dist < threshold) {
-    data[i] = 255;
-    data[i+1] = 255;
-    data[i+2] = 255;
-}
+      data[i+3] = 0; // make transparent
+    }
   }
   octx.putImageData(imageData, 0, 0);
   return offscreen;
@@ -166,12 +164,56 @@ function extractFishForClassifier() {
 
     const octx = offscreen.getContext('2d');
 
-    // Fill white background first instead of transparent, so classifier doesn't get confused by empty pixels
-    octx.fillStyle = "white";
-    octx.fillRect(0, 0, offscreen.width, offscreen.height);
-
-    // Draw original canvas on top
+    // Draw original canvas
     octx.drawImage(src, 0, 0);
+
+    const imageData = octx.getImageData(
+        0,
+        0,
+        offscreen.width,
+        offscreen.height
+    );
+
+    const data = imageData.data;
+
+    // Background color (#111d2b)
+    const bgR = 17;
+    const bgG = 29;
+    const bgB = 43;
+
+    const threshold = 40;
+
+    for(let i = 0; i < data.length; i += 4) {
+
+        const r = data[i];
+        const g = data[i+1];
+        const b = data[i+2];
+
+        const dist = Math.sqrt(
+            (r - bgR) ** 2 +
+            (g - bgG) ** 2 +
+            (b - bgB) ** 2
+        );
+
+        // Background → WHITE
+        if(dist < threshold) {
+
+            data[i] = 255;
+            data[i+1] = 255;
+            data[i+2] = 255;
+            data[i+3] = 255;
+
+        } else {
+
+            // Drawing → BLACK
+            data[i] = 0;
+            data[i+1] = 0;
+            data[i+2] = 0;
+            data[i+3] = 255;
+        }
+    }
+
+    octx.putImageData(imageData, 0, 0);
 
     return offscreen;
 }
@@ -223,6 +265,9 @@ async function addFish() {
   const texture = extractFishTexture();
 
   const texture2 = extractFishForClassifier();
+
+  // const debugURL = texture2.toDataURL();
+  // window.open(debugURL);
 
   const result = await classifyFish(texture2);
   console.log(result)

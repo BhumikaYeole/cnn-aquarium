@@ -40,16 +40,15 @@ def predict():
 
     try:
         processed_image = preprocess_image(image_path)
-        plt.imshow(processed_image[0, :, :, 0], cmap="gray")
-        plt.axis("off")
+        # plt.imshow(processed_image[0, :, :, 0], cmap="gray")
+        # plt.axis("off")
 
-        plt.savefig("processed.png")
-        plt.close()
-        
+        # plt.savefig("processed.png")
+        # plt.close()
 
         prediction = model.predict(processed_image)
         print("Prediction:", prediction)
-        if(prediction[0][0] > 0.5):
+        if(prediction[0][0] > 0.3):
             result = "Fish"
         else:
             result = "Not Fish"
