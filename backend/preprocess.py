@@ -1,9 +1,9 @@
 from PIL import Image
 import numpy as np
 
-def preprocess_image(image_path):
+def preprocess_image(image_file):
     # Load image
-    img = Image.open(image_path)
+    img = Image.open(image_file).convert("RGBA")
 
     # Convert to grayscale
     img = img.convert("L")

@@ -35,11 +35,11 @@ def predict():
         return jsonify({"error": "No image uploaded"}), 400
 
     image_file = request.files["image"]
-    image_path = f"temp_{image_file.filename}"
-    image_file.save(image_path)
+    # image_path = f"temp_{image_file.filename}"
+    # image_file.save(image_path)
 
     try:
-        processed_image = preprocess_image(image_path)
+        processed_image = preprocess_image(image_file)
         # plt.imshow(processed_image[0, :, :, 0], cmap="gray")
         # plt.axis("off")
 
