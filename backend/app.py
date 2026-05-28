@@ -4,6 +4,7 @@ from model_architecture import create_model
 # import tensorflow as tf
 # from tensorflow.keras.models import load_model
 from flask_cors import CORS
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 CORS(
@@ -19,7 +20,7 @@ CORS(
 )
 
 model = create_model()
-model.load_weights("../fish_weight.weights.h5")
+model.load_weights("../models/fish_weight.weights.h5")
 # model = load_model("../fish_classifier.h5", safe_mode=False, compile=False)
 
 @app.route("/")
@@ -39,9 +40,16 @@ def predict():
 
     try:
         processed_image = preprocess_image(image_path)
+        plt.imshow(processed_image[0, :, :, 0], cmap="gray")
+        plt.axis("off")
+
+        plt.savefig("processed.png")
+        plt.close()
+        
 
         prediction = model.predict(processed_image)
-        if(prediction[0][0] > 0.2):
+        print("Prediction:", prediction)
+        if(prediction[0][0] > 0.5):
             result = "Fish"
         else:
             result = "Not Fish"

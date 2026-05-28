@@ -147,11 +147,33 @@ function extractFishTexture() {
     const r=data[i], g=data[i+1], b=data[i+2];
     const dist = Math.sqrt((r-bgR)**2+(g-bgG)**2+(b-bgB)**2);
     if(dist < threshold) {
-      data[i+3] = 0; // make transparent
-    }
+    data[i] = 255;
+    data[i+1] = 255;
+    data[i+2] = 255;
+}
   }
   octx.putImageData(imageData, 0, 0);
   return offscreen;
+}
+
+function extractFishForClassifier() {
+
+    const src = fishCanvas;
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width = src.width;
+    offscreen.height = src.height;
+
+    const octx = offscreen.getContext('2d');
+
+    // Fill white background first instead of transparent, so classifier doesn't get confused by empty pixels
+    octx.fillStyle = "white";
+    octx.fillRect(0, 0, offscreen.width, offscreen.height);
+
+    // Draw original canvas on top
+    octx.drawImage(src, 0, 0);
+
+    return offscreen;
 }
 
 // === AQUARIUM ===
@@ -200,7 +222,9 @@ function showMessage(text) {
 async function addFish() {
   const texture = extractFishTexture();
 
-  const result = await classifyFish(texture);
+  const texture2 = extractFishForClassifier();
+
+  const result = await classifyFish(texture2);
   console.log(result)
 
   if(result.result === "Not Fish") {
