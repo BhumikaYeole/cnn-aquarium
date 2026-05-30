@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
-from preprocess import preprocess_image
-from model_architecture import create_model
+from backend.preprocess import preprocess_image
+from backend.model_architecture import create_model
 from flask_cors import CORS
 import os
 from flask import render_template
