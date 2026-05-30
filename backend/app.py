@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 app = Flask(__name__)
 CORS(app)
 
-model = create_model()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -22,7 +21,24 @@ WEIGHTS_PATH = os.path.abspath(
     )
 )
 
-model.load_weights(WEIGHTS_PATH)
+print("Starting application...")
+
+print("BASE_DIR:", BASE_DIR)
+print("WEIGHTS_PATH:", WEIGHTS_PATH)
+print("WEIGHTS EXISTS:", os.path.exists(WEIGHTS_PATH))
+
+try:
+    model = create_model()
+    print("Model created")
+
+    model.load_weights(WEIGHTS_PATH)
+    print("Weights loaded successfully")
+
+except Exception as e:
+    print("MODEL LOAD ERROR:", e)
+    raise
+
+
 # model = load_model("../fish_classifier.h5", safe_mode=False, compile=False)
 
 @app.route("/")
