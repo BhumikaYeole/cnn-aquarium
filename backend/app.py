@@ -4,7 +4,6 @@ from backend.model_architecture import create_model
 from flask_cors import CORS
 import os
 from flask import render_template
-import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 CORS(app)
