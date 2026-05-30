@@ -1,31 +1,33 @@
 from flask import Flask, request, jsonify
 from preprocess import preprocess_image
 from model_architecture import create_model
-# import tensorflow as tf
-# from tensorflow.keras.models import load_model
 from flask_cors import CORS
+import os
+from flask import render_template
 import matplotlib.pyplot as plt
 
 app = Flask(__name__)
-CORS(
-    app,
-    resources={
-        r"/*": {
-            "origins": [
-                "http://localhost:5500",
-                "http://127.0.0.1:5500"
-            ]
-        }
-    }
-)
+CORS(app)
 
 model = create_model()
-model.load_weights("../models/fish_weight.weights.h5")
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+WEIGHTS_PATH = os.path.abspath(
+    os.path.join(
+        BASE_DIR,
+        "..",
+        "models",
+        "fish_weight.weights.h5"
+    )
+)
+
+model.load_weights(WEIGHTS_PATH)
 # model = load_model("../fish_classifier.h5", safe_mode=False, compile=False)
 
 @app.route("/")
 def home():
-    return "Fish Classifier API with CNN model"
+    return render_template("fish_aquarium.html")
 
 @app.route("/predict", methods=["POST"])
 def predict():   
@@ -47,8 +49,8 @@ def predict():
         # plt.close()
 
         prediction = model.predict(processed_image)
-        print("Prediction:", prediction)
-        if(prediction[0][0] > 0.3):
+        # print("Prediction:", prediction)
+        if(prediction[0][0] > 0.2):
             result = "Fish"
         else:
             result = "Not Fish"
@@ -59,4 +61,4 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
