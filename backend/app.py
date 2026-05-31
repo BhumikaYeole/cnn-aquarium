@@ -64,7 +64,7 @@ def predict():
         # plt.close()
         print("before prediction")
 
-        prediction = model.predict(processed_image, training=False).numpy()
+        prediction = model(processed_image, training=False).numpy()
         print("Prediction:", prediction)
 
         if(prediction[0][0] > 0.2):
