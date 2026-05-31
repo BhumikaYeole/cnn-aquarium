@@ -62,9 +62,11 @@ def predict():
 
         # plt.savefig("processed.png")
         # plt.close()
+        print("before prediction")
 
-        prediction = model.predict(processed_image)
-        # print("Prediction:", prediction)
+        prediction = model.predict(processed_image, training=False).numpy()
+        print("Prediction:", prediction)
+
         if(prediction[0][0] > 0.2):
             result = "Fish"
         else:
